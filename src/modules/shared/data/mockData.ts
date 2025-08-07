@@ -1,4 +1,38 @@
-import type { Project, Sprint, UserStory } from '../types';
+export interface UserStory {
+  id: string
+  title: string
+  description: string
+  storyPoints: number
+  priority: 'High' | 'Medium' | 'Low'
+  status: 'Todo' | 'In Progress' | 'Done'
+  assignee?: string
+  tags?: string[]
+}
+
+export interface Sprint {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  status: 'Planning' | 'Active' | 'Completed'
+  userStories: UserStory[]
+}
+
+export interface Project {
+  id: string
+  name: string
+  description: string
+  sprints: Sprint[]
+}
+
+export type ViewMode = 'kanban' | 'list'
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  avatar?: string
+}
 
 // Mock data for user stories with proper format
 export const mockUserStories: UserStory[] = [
@@ -52,7 +86,7 @@ export const mockUserStories: UserStory[] = [
     assignee: 'Bob Wilson',
     tags: ['sprint-management', 'planning']
   }
-];
+]
 
 // Mock data for sprints
 export const mockSprints: Sprint[] = [
@@ -80,14 +114,14 @@ export const mockSprints: Sprint[] = [
     status: 'Planning',
     userStories: []
   }
-];
+]
 
 // Mock backlog (unassigned user stories)
 export const mockBacklog: UserStory[] = [
   mockUserStories[0], // User Authentication
   mockUserStories[2], // Task Dashboard
-  mockUserStories[4]  // Sprint Management
-];
+  mockUserStories[4] // Sprint Management
+]
 
 // Mock project data
 export const mockProject: Project = {
@@ -95,4 +129,4 @@ export const mockProject: Project = {
   name: 'TaskFlow',
   description: 'Project Management Navigation',
   sprints: mockSprints
-};
+}
