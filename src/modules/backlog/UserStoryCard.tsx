@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { ChevronDown, Hash } from 'lucide-react'
 import { useState } from 'react'
 
-interface UserStoryCardProps {
+type UserStoryCardProps = {
   story: UserStory
   onMoveToSprint?: (storyId: string, sprintId: string) => void
   onMoveToBacklog?: (storyId: string, fromSprintId: string) => void

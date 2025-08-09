@@ -1,6 +1,6 @@
 import { Sidebar } from './Sidebar'
 
-interface AppLayoutProps {
+type AppLayoutProps = {
   children: React.ReactNode
 }
 

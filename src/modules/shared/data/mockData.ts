@@ -1,4 +1,4 @@
-export interface UserStory {
+export type UserStory = {
   id: string
   title: string
   description: string
@@ -9,7 +9,7 @@ export interface UserStory {
   tags?: string[]
 }
 
-export interface Sprint {
+export type Sprint = {
   id: string
   name: string
   startDate: string
@@ -18,7 +18,7 @@ export interface Sprint {
   userStories: UserStory[]
 }
 
-export interface Project {
+export type Project = {
   id: string
   name: string
   description: string
@@ -27,7 +27,7 @@ export interface Project {
 
 export type ViewMode = 'kanban' | 'list'
 
-export interface User {
+export type User = {
   id: string
   name: string
   email: string

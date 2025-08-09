@@ -5,7 +5,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { Calendar, Play, Users } from 'lucide-react'
 import { UserStoryCard } from './UserStoryCard'
 
-interface SprintListProps {
+type SprintListProps = {
   sprints: Sprint[]
   onMoveToBacklog?: (storyId: string, fromSprintId: string) => void
   onMoveToSprint?: (storyId: string, toSprintId: string) => void
@@ -17,7 +17,7 @@ const sprintStatusColors = {
   Completed: 'bg-green-100 text-green-800'
 }
 
-interface SprintItemProps {
+type SprintItemProps = {
   sprint: Sprint
   onMoveToBacklog?: (storyId: string, fromSprintId: string) => void
   onMoveToSprint?: (storyId: string, toSprintId: string) => void
