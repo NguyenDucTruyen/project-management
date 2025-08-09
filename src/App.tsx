@@ -1,52 +1,18 @@
+// 1️⃣ External imports
+import { createContext, useReducer } from 'react'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+
+// 2️⃣ Internal imports
 import { ActiveSprintPage } from '@/modules/active-sprint/active-sprint-page'
 import { BacklogPage } from '@/modules/backlog/backlog-page'
 import { AppLayout } from '@/modules/shared/component/layout/AppLayout'
 import { TimelinePage } from '@/modules/timeline/timeline-page'
-import { createContext, useReducer } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
-function App() {
-  return (
-    <BrowserRouter>
-      <RootContextProvider>
-        <AppLayout>
-          <Routes>
-            <Route path='/' element={<Navigate to='/backlog' replace />} />
-            <Route path='/backlog' element={<BacklogPage />} />
-            <Route path='/sprint' element={<ActiveSprintPage />} />
-            <Route path='/timeline' element={<TimelinePage />} />
-          </Routes>
-        </AppLayout>
-      </RootContextProvider>
-    </BrowserRouter>
-  )
-}
-
+// 3️⃣ Types
 type AppLayoutContextType = {
   sidebarOpen: boolean
   darkTheme: boolean
 }
-const INITIAL_APP_LAYOUT_STATE: AppLayoutContextType = {
-  sidebarOpen: true,
-  darkTheme: false
-}
-export const AppLayoutContext = createContext<AppLayoutContextType>(INITIAL_APP_LAYOUT_STATE)
-export const AppLayoutDispatch = createContext<React.Dispatch<AppLayoutAction> | null>(null)
-const RootContextProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, dispatch] = useReducer(appLayoutReducer, INITIAL_APP_LAYOUT_STATE)
-  return (
-    <AppLayoutContext.Provider value={state}>
-      <AppLayoutDispatch.Provider value={dispatch}>{children}</AppLayoutDispatch.Provider>
-    </AppLayoutContext.Provider>
-  )
-}
-
-export const APP_LAYOUT_ACTIONS = {
-  SIDEBAR_UPDATE: 'sidebar:update',
-  SIDEBAR_TOGGLE: 'sidebar:toggle',
-  THEME_UPDATE: 'theme:update',
-  THEME_TOGGLE: 'theme:toggle'
-} as const
 
 type UpdateSidebarAction = {
   type: typeof APP_LAYOUT_ACTIONS.SIDEBAR_UPDATE
@@ -68,6 +34,24 @@ type ToggleThemeAction = {
 
 export type AppLayoutAction = UpdateSidebarAction | ToggleSidebarAction | UpdateThemeAction | ToggleThemeAction
 
+// 4️⃣ Constants
+export const INITIAL_APP_LAYOUT_STATE: AppLayoutContextType = {
+  sidebarOpen: true,
+  darkTheme: false
+}
+
+export const APP_LAYOUT_ACTIONS = {
+  SIDEBAR_UPDATE: 'sidebar:update',
+  SIDEBAR_TOGGLE: 'sidebar:toggle',
+  THEME_UPDATE: 'theme:update',
+  THEME_TOGGLE: 'theme:toggle'
+} as const
+
+// 5️⃣ Contexts
+export const AppLayoutContext = createContext<AppLayoutContextType>(INITIAL_APP_LAYOUT_STATE)
+export const AppLayoutDispatch = createContext<React.Dispatch<AppLayoutAction> | null>(null)
+
+// 6️⃣ Reducer
 const appLayoutReducer = (state: AppLayoutContextType, action: AppLayoutAction): AppLayoutContextType => {
   switch (action.type) {
     case APP_LAYOUT_ACTIONS.SIDEBAR_UPDATE:
@@ -81,6 +65,34 @@ const appLayoutReducer = (state: AppLayoutContextType, action: AppLayoutAction):
     default:
       return state
   }
+}
+
+// 7️⃣ Root Provider
+const RootContextProvider = ({ children }: { children: React.ReactNode }) => {
+  const [state, dispatch] = useReducer(appLayoutReducer, INITIAL_APP_LAYOUT_STATE)
+  return (
+    <AppLayoutContext.Provider value={state}>
+      <AppLayoutDispatch.Provider value={dispatch}>{children}</AppLayoutDispatch.Provider>
+    </AppLayoutContext.Provider>
+  )
+}
+
+// 8️⃣ App Component
+function App() {
+  return (
+    <BrowserRouter>
+      <RootContextProvider>
+        <AppLayout>
+          <Routes>
+            <Route path='/' element={<Navigate to='/backlog' replace />} />
+            <Route path='/backlog' element={<BacklogPage />} />
+            <Route path='/sprint' element={<ActiveSprintPage />} />
+            <Route path='/timeline' element={<TimelinePage />} />
+          </Routes>
+        </AppLayout>
+      </RootContextProvider>
+    </BrowserRouter>
+  )
 }
 
 export default App
