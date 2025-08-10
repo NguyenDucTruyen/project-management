@@ -1,10 +1,9 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Header } from '@/modules/shared/component/layout/Header'
+import { mockSprints } from '@/modules/shared/data/mockData'
 import { Plus, Search } from 'lucide-react'
-
-import { AppLayoutDispatch } from '@/App'
-import { useContext } from 'react'
+import { SprintList } from './sprint-list/sprint-list'
 
 export function BacklogPage() {
   const rightContent = (
@@ -36,22 +35,17 @@ export function BacklogPage() {
     </>
   )
 
-  const appDispatch = useContext(AppLayoutDispatch)
-
-  function onClickSidebarToggle() {
-    console.log('sidebar:toggle')
-    appDispatch?.({
-      type: 'sidebar:toggle'
-    })
-  }
-
   return (
-    <Header
-      title='Backlog'
-      description='Manage user stories, sprints and tasks'
-      rightContent={rightContent}
-      bottomContent={bottomContent}
-      onClickSidebarToggle={onClickSidebarToggle}
-    />
+    <>
+      <Header
+        title='Backlog'
+        description='Manage user stories, sprints and tasks'
+        rightContent={rightContent}
+        bottomContent={bottomContent}
+      />
+      <div className='p-4'>
+        <SprintList sprints={mockSprints}></SprintList>
+      </div>
+    </>
   )
 }

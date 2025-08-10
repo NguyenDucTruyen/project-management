@@ -1,6 +1,8 @@
+import { AppLayoutDispatch } from '@/App'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Sidebar } from 'lucide-react'
+import { useContext } from 'react'
 
 type HeaderProps = {
   className?: string
@@ -8,19 +10,19 @@ type HeaderProps = {
   description?: string
   rightContent?: React.ReactNode
   bottomContent?: React.ReactNode
-  onClickSidebarToggle?: () => void
 }
 
-export function Header({
-  className,
-  title,
-  description,
-  rightContent,
-  bottomContent,
-  onClickSidebarToggle
-}: HeaderProps) {
+export function Header({ className, title, description, rightContent, bottomContent }: HeaderProps) {
+  const appDispatch = useContext(AppLayoutDispatch)
+
+  function onClickSidebarToggle() {
+    console.log('sidebar:toggle')
+    appDispatch?.({
+      type: 'sidebar:toggle'
+    })
+  }
   return (
-    <header className={cn('bg-white border-b p-6 w-full', className)}>
+    <header className={cn('bg-white border-b p-6 w-full sticky top-0 left-0 z-1', className)}>
       <div className='flex items-center justify-between gap-4 mb-4 flex-wrap'>
         <div className='flex items-center gap-3'>
           <Button
