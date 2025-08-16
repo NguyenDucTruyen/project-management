@@ -1,9 +1,10 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { mockBacklog, type Sprint } from '@/modules/shared/data/mockData'
+import { type Sprint } from '@/modules/shared/data/mockData'
 import { BookOpen, Calendar, CheckCircle, ChevronRight, Play } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useContext } from 'react'
+import { BacklogDataContext, BacklogDispatchContext, useBacklogActions } from '../backlog-page'
 import { UserStoryCard } from './userstory-card'
 
 interface SprintListProps {
@@ -21,28 +22,51 @@ const sprintStatusColors = {
 interface SprintItemProps {
   sprint: Sprint
   type: 'backlog' | 'sprint'
-  defaultShowUserStories?: boolean
+  availableSprints: Sprint[]
+  showUserStory: boolean
+  toggleShowUserStory: (sprintId: string | null) => void
   onMoveToBacklog?: (storyId: string, fromSprintId: string) => void
   onMoveToSprint?: (storyId: string, toSprintId: string) => void
-  availableSprints: Sprint[]
 }
 
 function SprintItem({
   sprint,
-  onMoveToBacklog,
-  onMoveToSprint,
-  availableSprints,
   type,
-  defaultShowUserStories
+  showUserStory,
+  toggleShowUserStory,
+  onMoveToBacklog,
+  onMoveToSprint
 }: SprintItemProps) {
-  const [showUserStory, setShowUserStory] = useState(defaultShowUserStories)
+  const backlogData = useContext(BacklogDataContext)
+  const { loadUserStoriesForSprint } = useBacklogActions()
+
+  // Lấy user stories từ userStoryMap cho sprint này
+  const sprintUserStories = Array.from(backlogData.userStoryMap.values()).filter(
+    (userStory) => userStory.sprintId === sprint.id
+  )
+
+  // Load user stories khi mở sprint
+  const handleToggleUserStory = useCallback(async () => {
+    toggleShowUserStory(sprint.id)
+
+    // Load user stories nếu chưa có và đang mở
+    if (!showUserStory && sprintUserStories.length === 0 && sprint.id) {
+      console.log('Loading user stories for sprint:', sprint.id)
+      await loadUserStoriesForSprint(sprint.id)
+    }
+  }, [toggleShowUserStory, sprint.id, showUserStory, sprintUserStories.length, loadUserStoriesForSprint])
+
   return (
     <>
       {/* Sprint Header */}
       <div className='flex gap-2 p-4 border rounded-lg bg-primary-foreground items-center'>
         <button
           className='px-2 hover:bg-accent rounded-lg cursor-pointer h-10'
-          onClick={() => setShowUserStory((pre) => !pre)}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handleToggleUserStory()
+          }}
         >
           <ChevronRight size={20} className={cn(showUserStory && 'rotate-90')} />
         </button>
@@ -82,7 +106,7 @@ function SprintItem({
             )}
             <div className='flex items-center'>
               <BookOpen className='mr-1' size={16} />
-              {sprint.userStories.length} stories
+              {sprintUserStories.length} stories
             </div>
           </div>
         </div>
@@ -90,18 +114,16 @@ function SprintItem({
 
       {/* Sprint User Stories */}
       <div className={cn('p-4 min-h-20 pl-11', showUserStory ? 'block' : 'hidden')}>
-        {sprint.userStories.length === 0 ? (
+        {sprintUserStories.length === 0 ? (
           <p className='text-gray-500 text-center py-8'>No user stories in this sprint yet.</p>
         ) : (
           <div className='space-y-3'>
-            {sprint.userStories.map((story) => (
+            {sprintUserStories.map((story) => (
               <UserStoryCard
                 key={story.id}
                 story={story}
                 onMoveToBacklog={onMoveToBacklog}
                 onMoveToSprint={onMoveToSprint}
-                availableSprints={availableSprints}
-                currentSprintId={sprint.id}
               />
             ))}
           </div>
@@ -112,27 +134,29 @@ function SprintItem({
 }
 
 export function SprintList({ sprints, onMoveToBacklog, onMoveToSprint }: SprintListProps) {
+  const backlogDispatch = useContext(BacklogDispatchContext)
+
+  const handleToggleShowUserStory = useCallback(
+    (sprintId: string | null) => {
+      backlogDispatch?.({ type: 'toggle:showUserStory', sprintId })
+    },
+    [backlogDispatch]
+  )
+
   return (
     <div className='space-y-4'>
-      {sprints.map((sprint, index) => (
+      {sprints.map((sprint) => (
         <SprintItem
           key={sprint.id}
           sprint={sprint}
           onMoveToBacklog={onMoveToBacklog}
           onMoveToSprint={onMoveToSprint}
-          defaultShowUserStories={[0, 1].includes(index)}
+          showUserStory={sprint.showUserStory as boolean}
           availableSprints={sprints.filter((s) => s.id !== sprint.id)}
+          toggleShowUserStory={handleToggleShowUserStory}
           type='sprint'
         />
       ))}
-      <SprintItem
-        key={'backlog'}
-        sprint={mockBacklog}
-        onMoveToBacklog={onMoveToBacklog}
-        onMoveToSprint={onMoveToSprint}
-        availableSprints={sprints.filter((s) => s.id !== 'backlog')}
-        type='backlog'
-      />
     </div>
   )
 }

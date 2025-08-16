@@ -1,15 +1,14 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { Sprint, Task, UserStory } from '@/modules/shared/data/mockData'
+import type { Task, UserStory } from '@/modules/shared/data/mockData'
 import { BookOpen, ChevronRight, Target } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useContext } from 'react'
+import { BacklogDataContext, BacklogDispatchContext, useBacklogActions } from '../backlog-page'
 
 interface UserStoryCardProps {
   story: UserStory
   onMoveToSprint?: (storyId: string, sprintId: string) => void
   onMoveToBacklog?: (storyId: string, fromSprintId: string) => void
-  availableSprints?: Sprint[]
-  currentSprintId?: string
   isDraggable?: boolean
 }
 
@@ -26,7 +25,22 @@ const statusColors = {
 }
 
 export function UserStoryCard({ story }: UserStoryCardProps) {
-  const [showTasks, setShowTasks] = useState(false)
+  const backlogData = useContext(BacklogDataContext)
+  const backlogDispatch = useContext(BacklogDispatchContext)
+  const { loadTasks } = useBacklogActions()
+
+  // Lấy tasks từ taskMap dựa trên userStoryId
+  const storyTasks = Array.from(backlogData.taskMap.values()).filter((task) => task.userStoryId === story.id)
+
+  const handleToggleShowTasks = useCallback(async () => {
+    // Toggle visibility
+    backlogDispatch?.({ type: 'toggle:showTask', userStoryId: story.id })
+
+    // Load tasks nếu chưa có và đang mở
+    if (!story.showTask && storyTasks.length === 0) {
+      await loadTasks(story.id)
+    }
+  }, [backlogDispatch, story.id, story.showTask, storyTasks.length, loadTasks])
 
   return (
     <div
@@ -43,11 +57,8 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
             </div>
             <h3 className='font-medium text-gray-900 text-sm leading-relaxed'>{story.title}</h3>
           </div>
-          <button
-            className='px-1 hover:bg-accent rounded-sm cursor-pointer h-6'
-            onClick={() => setShowTasks((pre) => !pre)}
-          >
-            <ChevronRight size={16} className={cn(showTasks && 'rotate-90')} />
+          <button className='px-1 hover:bg-accent rounded-sm cursor-pointer h-6' onClick={handleToggleShowTasks}>
+            <ChevronRight size={16} className={cn(story.showTask && 'rotate-90')} />
           </button>
         </div>
 
@@ -55,8 +66,7 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
 
         <div className='flex items-center justify-between'>
           <div className='text-sm text-gray-500'>
-            {' '}
-            {story.tasks.length} {story.tasks.length > 1 ? 'tasks' : 'task'}
+            {storyTasks.length} {storyTasks.length > 1 ? 'tasks' : 'task'}
           </div>
           <Badge className={statusColors[story.status]}>{story.status}</Badge>
         </div>
@@ -76,14 +86,16 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
         )}
 
         {/* List task */}
-        <div className={cn('mt-4 space-y-2 border-t pt-4', showTasks ? 'block' : 'hidden')}>
+        <div className={cn('mt-4 space-y-2 border-t pt-4', story.showTask ? 'block' : 'hidden')}>
           <h4 className='text-sm font-medium text-muted-foreground flex items-center gap-1'>
             <Target size={16} />
-            Tasks ({story.tasks.length})
+            Tasks ({storyTasks.length})
           </h4>
-          {story.tasks.map((task) => (
-            <TaskItem key={task.id} task={task} />
-          ))}
+          {storyTasks.length === 0 && story.showTask ? (
+            <p className='text-gray-500 text-center py-4'>No tasks found for this user story.</p>
+          ) : (
+            storyTasks.map((task) => <TaskItem key={task.id} task={task} />)
+          )}
         </div>
       </div>
     </div>
