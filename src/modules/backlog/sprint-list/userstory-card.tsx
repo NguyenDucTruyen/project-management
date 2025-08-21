@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import type { Task, UserStory } from '@/modules/shared/data/mockData'
-import { BookOpen, ChevronRight, Target } from 'lucide-react'
-import { useCallback, useContext } from 'react'
-import { BacklogDataContext, BacklogDispatchContext, useBacklogActions } from '../backlog-page'
+import { BookOpen, ChevronRight } from 'lucide-react'
+import { useContext } from 'react'
+import { BacklogDataContext, BacklogDispatchContext } from '../backlog-page'
 
 interface UserStoryCardProps {
   story: UserStory
@@ -27,20 +27,20 @@ const statusColors = {
 export function UserStoryCard({ story }: UserStoryCardProps) {
   const backlogData = useContext(BacklogDataContext)
   const backlogDispatch = useContext(BacklogDispatchContext)
-  const { loadTasks } = useBacklogActions()
+  // const { loadTasks } = useBacklogActions()
 
   // Lấy tasks từ taskMap dựa trên userStoryId
-  const storyTasks = Array.from(backlogData.taskMap.values()).filter((task) => task.userStoryId === story.id)
+  // const storyTasks = Array.from(backlogData.taskMap.values()).filter((task) => task.userStoryId === story.id)
 
-  const handleToggleShowTasks = useCallback(async () => {
-    // Toggle visibility
-    backlogDispatch?.({ type: 'toggle:showTask', userStoryId: story.id })
+  // const handleToggleShowTasks = useCallback(async () => {
+  //   // Toggle visibility
+  //   backlogDispatch?.({ type: 'toggle:showTask', userStoryId: story.id })
 
-    // Load tasks nếu chưa có và đang mở
-    if (!story.showTask && storyTasks.length === 0) {
-      await loadTasks(story.id)
-    }
-  }, [backlogDispatch, story.id, story.showTask, storyTasks.length, loadTasks])
+  //   // Load tasks nếu chưa có và đang mở
+  //   if (!story.showTask && storyTasks.length === 0) {
+  //     await loadTasks(story.id)
+  //   }
+  // }, [backlogDispatch, story.id, story.showTask, storyTasks.length, loadTasks])
 
   return (
     <div
@@ -57,7 +57,7 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
             </div>
             <h3 className='font-medium text-gray-900 text-sm leading-relaxed'>{story.title}</h3>
           </div>
-          <button className='px-1 hover:bg-accent rounded-sm cursor-pointer h-6' onClick={handleToggleShowTasks}>
+          <button className='px-1 hover:bg-accent rounded-sm cursor-pointer h-6'>
             <ChevronRight size={16} className={cn(story.showTask && 'rotate-90')} />
           </button>
         </div>
@@ -65,9 +65,9 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
         <p className='text-gray-600 text-sm'>{story.description}</p>
 
         <div className='flex items-center justify-between'>
-          <div className='text-sm text-gray-500'>
+          {/* <div className='text-sm text-gray-500'>
             {storyTasks.length} {storyTasks.length > 1 ? 'tasks' : 'task'}
-          </div>
+          </div> */}
           <Badge className={statusColors[story.status]}>{story.status}</Badge>
         </div>
 
@@ -86,7 +86,7 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
         )}
 
         {/* List task */}
-        <div className={cn('mt-4 space-y-2 border-t pt-4', story.showTask ? 'block' : 'hidden')}>
+        {/* <div className={cn('mt-4 space-y-2 border-t pt-4', story.showTask ? 'block' : 'hidden')}>
           <h4 className='text-sm font-medium text-muted-foreground flex items-center gap-1'>
             <Target size={16} />
             Tasks ({storyTasks.length})
@@ -96,7 +96,7 @@ export function UserStoryCard({ story }: UserStoryCardProps) {
           ) : (
             storyTasks.map((task) => <TaskItem key={task.id} task={task} />)
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   )

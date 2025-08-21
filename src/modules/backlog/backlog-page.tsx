@@ -1,14 +1,9 @@
-import {
-  getListSprints,
-  getListTasks,
-  getListUserStories,
-  type Priority,
-  type Sprint,
-  type Task,
-  type UserStory
-} from '@/modules/shared/data/mockData'
+import { useApiQuery } from '@/lib/useApiQuery'
+import type { Priority } from '@/modules/shared/data/mockData'
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import { BacklogHeader } from './backlog-header'
+import type { Sprint, UserStory } from './services/api'
+import { fetchSprints, fetchUserStories } from './services/api'
 import { SprintList } from './sprint-list/sprint-list'
 
 export type BacklogData = {
@@ -17,8 +12,7 @@ export type BacklogData = {
   priority: Priority | string
   assignee: string
   userStoryMap: Map<string, UserStory>
-  taskMap: Map<string, Task>
-  loading: 'userstories' | 'sprints' | 'tasks' | null
+  loading: 'userstories' | 'sprints' | null
   error: string | null
 }
 const INIT_BACKLOG_DATA: BacklogData = {
@@ -27,60 +21,16 @@ const INIT_BACKLOG_DATA: BacklogData = {
   priority: '',
   assignee: '',
   userStoryMap: new Map(),
-  taskMap: new Map(),
   loading: null,
   error: null
 }
-type FilterOptions = {
-  priority: 'High' | 'Medium' | 'Low'
-  assignee: string
-  searchText: string
-}
-
-type FilterUserstory = {
-  type: 'search:userStory'
-  data: FilterOptions
-}
-type UpdateListUserStory = {
-  type: 'search:userStory:success'
-  data: UserStory[]
-}
-type UpdateListSprints = {
-  type: 'load:sprints:success'
-  data: Sprint[]
-}
-type ChangeStateLoading = {
-  type: 'search:userStory:start' | 'load:sprints:start' | 'load:tasks:start' | 'error'
-}
-type ToggleShowUserStory = {
-  type: 'toggle:showUserStory'
-  sprintId: string | null
-}
-type ToggleShowTask = {
-  type: 'toggle:showTask'
-  userStoryId: string
-}
-type UpdateListTasks = {
-  type: 'load:tasks:success'
-  data: Task[]
-}
-type UpdateFilter = {
-  type: 'update:filter'
-  payload: {
-    searchText?: string
-    priority?: Priority | string
-    assignee?: string
-  }
-}
-
 type BacklogDispatchAction =
-  | ChangeStateLoading
-  | UpdateListUserStory
-  | UpdateListSprints
-  | ToggleShowUserStory
-  | ToggleShowTask
-  | UpdateListTasks
-  | UpdateFilter
+  | { type: 'search:userStory:start' }
+  | { type: 'load:sprints:start' }
+  | { type: 'error' }
+  | { type: 'load:sprints:success'; data: Sprint[] }
+  | { type: 'search:userStory:success'; data: UserStory[] }
+  | { type: 'toggle:showUserStory'; sprintId: string | null }
 function backlogDispatch(state: BacklogData, payload: BacklogDispatchAction): BacklogData {
   switch (payload.type) {
     case 'search:userStory:start':
@@ -95,12 +45,7 @@ function backlogDispatch(state: BacklogData, payload: BacklogDispatchAction): Ba
         loading: 'sprints',
         error: null
       }
-    case 'load:tasks:start':
-      return {
-        ...state,
-        loading: 'tasks',
-        error: null
-      }
+    // removed load:tasks:start
     case 'error':
       return {
         ...state,
@@ -143,43 +88,8 @@ function backlogDispatch(state: BacklogData, payload: BacklogDispatchAction): Ba
         sprints: updatedSprints
       }
     }
-    case 'toggle:showTask': {
-      const updatedUserStoryMap = new Map(state.userStoryMap)
-      const userStory = updatedUserStoryMap.get(payload.userStoryId)
-
-      if (userStory) {
-        updatedUserStoryMap.set(payload.userStoryId, {
-          ...userStory,
-          showTask: !userStory.showTask
-        })
-      }
-
-      return {
-        ...state,
-        userStoryMap: updatedUserStoryMap
-      }
-    }
-    case 'load:tasks:success': {
-      const newTaskMap = new Map(state.taskMap)
-      payload.data.forEach((task: Task) => {
-        newTaskMap.set(task.id, task)
-      })
-
-      return {
-        ...state,
-        taskMap: newTaskMap,
-        loading: null,
-        error: null
-      }
-    }
-    case 'update:filter': {
-      return {
-        ...state,
-        searchText: payload.payload.searchText ?? state.searchText,
-        priority: payload.payload.priority ?? state.priority,
-        assignee: payload.payload.assignee ?? state.assignee
-      }
-    }
+    // removed toggle:showTask and load:tasks:success cases
+    // removed update:filter case
     default:
       return state
   }
@@ -188,11 +98,9 @@ export const BacklogDataContext = createContext(INIT_BACKLOG_DATA)
 export const BacklogDispatchContext = createContext<React.Dispatch<BacklogDispatchAction> | null>(null)
 export const BacklogActionsContext = createContext<{
   loadSprints: () => Promise<void>
-  loadTasks: (userStoryId: string) => Promise<void>
   loadUserStoriesForSprint: (sprintId: string | null) => Promise<void>
-  searchUserStories: (payload: FilterUserstory) => Promise<void>
-  updateFilter: (filterPayload: { searchText?: string; priority?: Priority | string; assignee?: string }) => void
-  searchWithCurrentFilters: () => Promise<void>
+  createSprint: (data: Partial<Sprint>) => Promise<void>
+  createUserStory: (data: Partial<UserStory>) => Promise<void>
 } | null>(null)
 
 export function useBacklogActions() {
@@ -213,22 +121,29 @@ export function BacklogContext({ children }: { children: React.ReactNode }) {
 
   backlogStoreRef.current = backlogStore
 
-  const loadSprints = useCallback(async () => {
-    dispatchBacklogStore({ type: 'load:sprints:start' })
+  // Fetch sprints from API and store in context
+  const { data: sprintsData, loading: sprintsLoading, error: sprintsError } = useApiQuery('sprints', fetchSprints)
+  // Fetch all user stories (for demo, could be per sprint)
+  const {
+    data: userStoriesData,
+    loading: userStoriesLoading,
+    error: userStoriesError
+  } = useApiQuery('userStories', fetchUserStories)
 
-    try {
-      const sprints = await getListSprints()
-      console.log('sprints', sprints)
-      dispatchBacklogStore({
-        type: 'load:sprints:success',
-        data: sprints
-      })
-    } catch {
-      dispatchBacklogStore({
-        type: 'error'
-      })
+  // Sync API data to context state
+  useEffect(() => {
+    if (sprintsData) {
+      dispatchBacklogStore({ type: 'load:sprints:success', data: sprintsData })
     }
-  }, [])
+  }, [sprintsData])
+
+  useEffect(() => {
+    if (userStoriesData) {
+      dispatchBacklogStore({ type: 'search:userStory:success', data: userStoriesData })
+    }
+  }, [userStoriesData])
+
+  const loadSprints = useCallback(async () => {}, []) // No-op, handled by useApiQuery
 
   const loadTasks = useCallback(async (userStoryId: string) => {
     console.log('loadTasks - Function called for userStoryId:', userStoryId)
@@ -299,32 +214,28 @@ export function BacklogContext({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  // For demo, just refetch all user stories (could be filtered by sprintId)
   const loadUserStoriesForSprint = useCallback(async (sprintId: string | null) => {
-    console.log('loadUserStoriesForSprint - Function called for sprintId:', sprintId)
-    dispatchBacklogStore({ type: 'search:userStory:start' })
+    // Could implement per-sprint fetch if API supports
+    // For now, just refetch all
+    await fetchUserStories()
+  }, [])
 
-    try {
-      if (!sprintId) return
+  // Modal create handlers (to be used in modal forms)
+  const createSprint = useCallback(async (data: Partial<Sprint>) => {
+    await fetch('/sprints', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+  }, [])
 
-      // Sử dụng filters hiện tại từ state
-      const currentState = backlogStoreRef.current
-      const userStories = await getListUserStories({
-        sprintId,
-        priority: currentState.priority as 'High' | 'Medium' | 'Low',
-        assignee: currentState.assignee,
-        searchText: currentState.searchText
-      })
-
-      console.log('loadUserStoriesForSprint - Data received:', userStories.length, 'user stories for sprint', sprintId)
-      dispatchBacklogStore({
-        type: 'search:userStory:success',
-        data: userStories
-      })
-    } catch {
-      dispatchBacklogStore({
-        type: 'error'
-      })
-    }
+  const createUserStory = useCallback(async (data: Partial<UserStory>) => {
+    await fetch('/user-stories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
   }, [])
 
   const searchUserStories = useCallback(async (payload: FilterUserstory) => {
@@ -356,13 +267,11 @@ export function BacklogContext({ children }: { children: React.ReactNode }) {
   const actions = useMemo(
     () => ({
       loadSprints,
-      loadTasks,
       loadUserStoriesForSprint,
-      searchUserStories,
-      updateFilter,
-      searchWithCurrentFilters
+      createSprint,
+      createUserStory
     }),
-    [loadSprints, loadTasks, loadUserStoriesForSprint, searchUserStories, updateFilter, searchWithCurrentFilters]
+    [loadSprints, loadUserStoriesForSprint, createSprint, createUserStory]
   )
 
   return (

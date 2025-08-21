@@ -3,6 +3,7 @@ import { createContext, useReducer } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 // 2️⃣ Internal imports
+import { ApiProvider } from '@/lib/api-context'
 import { ActiveSprintPage } from '@/modules/active-sprint/active-sprint-page'
 import { BacklogPage } from '@/modules/backlog/backlog-page'
 import { AppLayout } from '@/modules/shared/component/layout/AppLayout'
@@ -71,9 +72,11 @@ const appLayoutReducer = (state: AppLayoutContextType, action: AppLayoutAction):
 const RootContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [state, dispatch] = useReducer(appLayoutReducer, INITIAL_APP_LAYOUT_STATE)
   return (
-    <AppLayoutContext.Provider value={state}>
-      <AppLayoutDispatch.Provider value={dispatch}>{children}</AppLayoutDispatch.Provider>
-    </AppLayoutContext.Provider>
+    <ApiProvider>
+      <AppLayoutContext.Provider value={state}>
+        <AppLayoutDispatch.Provider value={dispatch}>{children}</AppLayoutDispatch.Provider>
+      </AppLayoutContext.Provider>
+    </ApiProvider>
   )
 }
 
